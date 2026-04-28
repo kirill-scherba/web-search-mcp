@@ -1,5 +1,13 @@
 # web-search-mcp 🕸️
 
+[![web-search-mcp](docs/web-search-mcp.png)](docs/web-search-mcp.png)
+
+[![Go](https://img.shields.io/badge/go-1.26+-00ADD8?logo=go)](https://golang.org)
+[![MCP](https://img.shields.io/badge/MCP-2024--11--05-green.svg)](https://modelcontextprotocol.io)
+[![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
+[![Ollama](https://img.shields.io/badge/Ollama-embeddinggemma-3B82F6?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMjIgMTJjMCA1LjUyMy00LjQ3NyAxMC0xMCAxMEM2LjQ3NyAyMiAyIDE3LjUyMyAyIDEyUzYuNDc3IDIgMTIgMnMxMCA0LjQ3NyAxMCAxMHoiIGZpbGw9IiMzQjgxRjYiLz48L3N2Zz4=)](https://ollama.com)
+[![DuckDuckGo](https://img.shields.io/badge/search-DuckDuckGo-FF6600?logo=duckduckgo)](https://duckduckgo.com)
+
 **MCP server for intelligent web search — no API keys required, with local AI-powered semantic analysis running on your machine.**
 
 ---
@@ -235,7 +243,19 @@ export CHROME_PATH=/usr/bin/chromium
 
 **Stack:** Go + chromedp + go-readability + Ollama + go-libsql + mcp-go
 **Transport:** stdin/stdout (JSON-RPC 2.0)
-**License:** BSD
+**License:** MIT
+
+---
+
+## 🎨 Logo Prompt
+
+Send this prompt to Gemini or any image generation AI to create a logo for the project:
+
+> **Minimalist logo for "web-search-mcp" — an MCP server for intelligent web search.**
+>
+> A stylized spider web (representing "web" and "MCP") with a magnifying glass in the center. The web is drawn with thin, clean cyan/blue lines on a dark background. In the center, the magnifying glass overlaps the web intersection — the glass lens contains a subtle glow effect symbolizing "intelligence" and "AI." The style is flat vector, modern, cyberpunk-lite. No text needed. Simple icon, suitable for a 128x128 app icon.
+>
+> Style: flat vector, dark theme, cyan/blue accent palette (#00ADD8 for Go, #3B82F6). Minimal lines, tech aesthetics.
 
 ---
 
@@ -246,3 +266,14 @@ export CHROME_PATH=/usr/bin/chromium
 printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n' | timeout 3 ./web-search-mcp 2>/dev/null
 
 # If you see 4 tools — everything works!
+```
+
+---
+
+## License
+
+MIT © Kirill Scherba
+
+---
+
+*Built with Go + chromedp + go-readability + Ollama + go-libsql + mcp-go.*
