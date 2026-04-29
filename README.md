@@ -16,6 +16,8 @@
 
 When an AI assistant needs to find information on the web, the typical approach is wasteful:
 
+[![web-search-mcp-d1](docs/web-search-mcp-d1.png)](docs/web-search-mcp-d1.png)
+
 ```
 ❌ BAD APPROACH (without web-search-mcp):
    AI: "find me Go trends 2025"
@@ -162,12 +164,12 @@ AI: "From the Go Developer Survey 2025:
 
 ## 🛠️ Tool Reference
 
-| Tool | What it does | When to use |
-|-----------|-----------|-------------------|
-| `web_search` | Searches DuckDuckGo, returns URL + snippet | Need a quick list of links |
-| `web_search_analyze` 🏆 | Search + fetch + semantic analysis | **Primary tool!** Saves tokens |
-| `web_fetch` | Fetches page, renders JS, extracts text | Need full content of a specific page |
-| `web_semantic_search` | Semantic search over indexed content | "What was there about X?" — no need to re-google |
+| Tool                   | What it does                               | When to use                                      |
+| ---------------------- | ------------------------------------------ | ------------------------------------------------ |
+| `web_search`           | Searches DuckDuckGo, returns URL + snippet | Need a quick list of links                       |
+| `web_search_analyze` 🏆 | Search + fetch + semantic analysis         | **Primary tool!** Saves tokens                   |
+| `web_fetch`            | Fetches page, renders JS, extracts text    | Need full content of a specific page             |
+| `web_semantic_search`  | Semantic search over indexed content       | "What was there about X?" — no need to re-google |
 
 ---
 
@@ -205,13 +207,13 @@ export CHROME_PATH=/usr/bin/chromium
 
 ### CLI flags
 
-| Flag | Default | Description |
-|------|-------------|----------|
-| `--db` | `~/.config/web-search-mcp/web_search.db` | Database path (cache) |
-| `--ollama-url` | `http://localhost:11434` | Ollama endpoint |
-| `--embedding-model` | `embeddinggemma:latest` | Embedding model |
-| `--chromium-path` | auto-detect | Chromium binary path |
-| `-h` | — | Help |
+| Flag                | Default                                  | Description           |
+| ------------------- | ---------------------------------------- | --------------------- |
+| `--db`              | `~/.config/web-search-mcp/web_search.db` | Database path (cache) |
+| `--ollama-url`      | `http://localhost:11434`                 | Ollama endpoint       |
+| `--embedding-model` | `embeddinggemma:latest`                  | Embedding model       |
+| `--chromium-path`   | auto-detect                              | Chromium binary path  |
+| `-h`                | —                                        | Help                  |
 
 ---
 
