@@ -54,7 +54,7 @@ func main() {
 	}
 
 	// Initialize embedder
-	embedder := NewEmbedder(*embeddingModel)
+	embedder := NewEmbedder(*embeddingModel, *ollamaURL)
 
 	// Create MCP server
 	s := server.NewMCPServer(

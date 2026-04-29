@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -182,7 +184,7 @@ func (s *Store) SavePage(fetched *FetchedPage) (int64, error) {
 	}
 
 	// Create hash for dedup
-	hash := fmt.Sprintf("%d", len(fetched.Text))
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(fetched.Text)))
 
 	_, err := s.db.Exec(`
 		INSERT INTO web_pages (url, title, full_text, text_hash, fetched_at)
@@ -321,7 +323,7 @@ func cosineSimilarity(a, b []float32) float64 {
 		return 0
 	}
 
-	return dotProduct / (normA * normB)
+	return dotProduct / (math.Sqrt(normA) * math.Sqrt(normB))
 }
 
 // chunkText splits text into chunks of approximately the given size.

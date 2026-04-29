@@ -16,9 +16,6 @@ import (
 // Default embedding model.
 const defaultEmbeddingModel = "embeddinggemma:latest"
 
-// Ollama API base URL.
-const ollamaBaseURL = "http://localhost:11434"
-
 // Timeout for Ollama requests.
 const ollamaTimeout = 30 * time.Second
 
@@ -36,6 +33,7 @@ type OllamaEmbeddingResponse struct {
 // Embedder handles communication with Ollama for generating embeddings.
 type Embedder struct {
 	model      string
+	baseURL    string
 	ready      bool
 	httpClient *http.Client
 	mu         sync.RWMutex
@@ -43,12 +41,16 @@ type Embedder struct {
 
 // NewEmbedder creates a new Embedder, checks if Ollama is running and the
 // model is available.
-func NewEmbedder(model string) *Embedder {
+func NewEmbedder(model, ollamaURL string) *Embedder {
 	if model == "" {
 		model = defaultEmbeddingModel
 	}
+	if ollamaURL == "" {
+		ollamaURL = "http://localhost:11434"
+	}
 	e := &Embedder{
-		model: model,
+		model:   model,
+		baseURL: ollamaURL,
 		httpClient: &http.Client{
 			Timeout: ollamaTimeout,
 			Transport: &http.Transport{
@@ -91,7 +93,7 @@ func (e *Embedder) checkOllama() error {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	resp, err := e.httpClient.Get(ollamaBaseURL + "/api/tags")
+	resp, err := e.httpClient.Get(e.baseURL + "/api/tags")
 	if err != nil {
 		return fmt.Errorf("Ollama is not running. Start with: ollama serve")
 	}
@@ -155,7 +157,7 @@ func (e *Embedder) GenerateEmbedding(text string) ([]float32, error) {
 	var lastErr error
 	for attempt := 1; attempt <= maxEmbeddingRetries; attempt++ {
 
-		resp, err := e.httpClient.Post(ollamaBaseURL+"/api/embeddings", "application/json", bytes.NewReader(body))
+		resp, err := e.httpClient.Post(e.baseURL+"/api/embeddings", "application/json", bytes.NewReader(body))
 		if err != nil {
 			lastErr = fmt.Errorf("Ollama request failed: %w", err)
 			if attempt < maxEmbeddingRetries {
@@ -230,26 +232,3 @@ func bytesToFloat32Slice(b []byte) []float32 {
 	return v
 }
 
-// float32SliceToString converts a []float32 to a JSON array string for SQL's vector() function.
-func float32SliceToString(v []float32) string {
-	if len(v) == 0 {
-		return "[]"
-	}
-	var sb strings.Builder
-	sb.Grow(len(v)*8 + 2)
-	sb.WriteByte('[')
-	for i, val := range v {
-		if i > 0 {
-			sb.WriteByte(',')
-		}
-		sb.WriteString(fmt.Sprintf("%f", val))
-	}
-	sb.WriteByte(']')
-	return sb.String()
-}
-
-// embeddingDimension returns the dimension of the current model's embeddings.
-// nomic-embed-text is 768 dimensions.
-func embeddingDimension() int {
-	return 768
-}

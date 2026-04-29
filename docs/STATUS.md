@@ -20,6 +20,17 @@
 ## Compilation Check
 
 - `go build ./...` — ✅ PASS
+- `go vet ./...` — ✅ PASS
+
+## Bug Fixes Applied
+
+| # | Fix | File | Status |
+|---|-----|------|--------|
+| 1 | Fixed `cosineSimilarity` — added `math.Sqrt()` for correct vector norm computation | store.go:324 | ✅ |
+| 2 | Replaced deduplication hash from text length to SHA256 | store.go:187 | ✅ |
+| 3 | Added `ollamaURL` parameter to `NewEmbedder`; removed global constant `ollamaBaseURL` | embedding.go + main.go | ✅ |
+| 4 | Removed unused functions `float32SliceToString()` and `embeddingDimension()` | embedding.go | ✅ |
+| 5 | Updated STATUS.md | docs/STATUS.md | ✅ |
 
 ## Next Steps
 
