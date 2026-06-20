@@ -7,7 +7,8 @@
 | embedding.go | ✅ Done | Copied from ai/, model: embeddinggemma:latest |
 | search.go | ✅ Done | DuckDuckGo HTML search with cascadia parser |
 | fetch.go | ✅ Done | chromedp + go-readability |
-| store.go | ✅ Done | libSQL tables, cache, cosine similarity |
+| store.go | ✅ Done | libSQL tables via sqlh, cache, cosine similarity |
+| store_test.go | ✅ Done | Unit tests for sqlh-backed Store |
 | tool_web_search.go | ✅ Done | MCP tool |
 | tool_web_fetch.go | ✅ Done | MCP tool with cache |
 | tool_web_search_analyze.go | ✅ Done | MCP tool, full pipeline |
@@ -17,10 +18,11 @@
 | docs/DESIGN.md | ✅ Done | |
 | docs/STATUS.md | ✅ Done | |
 
-## Compilation Check
+## Compilation & Test Check
 
 - `go build ./...` — ✅ PASS
 - `go vet ./...` — ✅ PASS
+- `go test ./...` — ✅ PASS
 
 ## Bug Fixes Applied
 
@@ -31,6 +33,7 @@
 | 3 | Added `ollamaURL` parameter to `NewEmbedder`; removed global constant `ollamaBaseURL` | embedding.go + main.go | ✅ |
 | 4 | Removed unused functions `float32SliceToString()` and `embeddingDimension()` | embedding.go | ✅ |
 | 5 | Updated STATUS.md | docs/STATUS.md | ✅ |
+| 6 | Migrated `store.go` from raw SQL to sqlh | store.go | ✅ |
 
 ## Next Steps
 
@@ -43,3 +46,4 @@
 - go-libsql driver
 - chromedp (needs Chrome/Chromium installed)
 - Ollama with embeddinggemma:latest
+- github.com/kirill-scherba/sqlh
