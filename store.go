@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -11,29 +12,37 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kirill-scherba/sqlh"
 	_ "github.com/tursodatabase/go-libsql"
 )
 
 // WebPageRecord represents a record in the web_pages table.
 type WebPageRecord struct {
-	ID        int64  `db:"id,primary,autoincrement"`
-	URL       string `db:"url"`
-	Title     string `db:"title"`
-	FullText  string `db:"full_text"`
-	TextHash  string `db:"text_hash"`
-	FetchedAt int64  `db:"fetched_at"`
+	_         string `db_table_name:"web_pages"`
+	ID        int64  `db:"id" db_key:"primary key autoincrement"`
+	URL       string `db:"url" db_key:"unique not null"`
+	Title     string `db:"title" db_key:"not null"`
+	FullText  string `db:"full_text" db_key:"not null"`
+	TextHash  string `db:"text_hash" db_key:"not null"`
+	FetchedAt int64  `db:"fetched_at" db_key:"not null"`
 }
 
 // WebChunkRecord represents a chunk in the web_chunks table with embedding.
 type WebChunkRecord struct {
-	ID        int64     `db:"id,primary,autoincrement"`
-	PageID    int64     `db:"page_id"`
-	URL       string    `db:"url"`
-	Title     string    `db:"title"`
-	ChunkIdx  int       `db:"chunk_idx"`
-	Text      string    `db:"text"`
-	Embedding []float32 `db:"-"` // Not stored directly via sqlh, handled via raw SQL
-	CreatedAt string    `db:"created_at"`
+	_         string `db_table_name:"web_chunks"`
+	ID        int64  `db:"id" db_key:"primary key autoincrement"`
+	PageID    int64  `db:"page_id" db_key:"not null"`
+	URL       string `db:"url" db_key:"not null"`
+	Title     string `db:"title" db_key:"not null"`
+	ChunkIdx  int    `db:"chunk_idx" db_key:"not null"`
+	Text      string `db:"text" db_key:"not null"`
+	Embedding []byte `db:"embedding"`
+	CreatedAt string `db:"created_at" db_key:"not null"`
+
+	// Composite unique constraint on (url, chunk_idx).
+	_ string `db:"-" db_key:"CONSTRAINT url_chunk UNIQUE (url, chunk_idx)"`
+	// Foreign key with cascade delete when a page is removed.
+	_ string `db:"-" db_key:"CONSTRAINT webchunks_page_id_fk FOREIGN KEY (page_id) REFERENCES web_pages(id) ON DELETE CASCADE"`
 }
 
 // Store manages the web page database.
@@ -107,49 +116,23 @@ func (s *Store) Close() error {
 
 // createTables creates the database tables if they don't exist.
 func (s *Store) createTables() error {
-	// Enable vector extension in libsql
+	// Enable vector extension in libsql. This is not a table operation, so it
+	// stays as raw SQL.
 	_, err := s.db.Exec("CREATE EXTENSION IF NOT EXISTS vector")
 	if err != nil {
 		// Vector extension might not be available in all libsql builds
 		log.Printf("⚠️  Vector extension not available (cosine similarity will use custom function): %v", err)
 	}
 
-	// Web pages table
-	_, err = s.db.Exec(`
-		CREATE TABLE IF NOT EXISTS web_pages (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			url TEXT NOT NULL,
-			title TEXT NOT NULL DEFAULT '',
-			full_text TEXT NOT NULL DEFAULT '',
-			text_hash TEXT NOT NULL DEFAULT '',
-			fetched_at INTEGER NOT NULL DEFAULT 0,
-			UNIQUE(url)
-		)
-	`)
-	if err != nil {
+	// Create tables from struct definitions.
+	if err := sqlh.Create[WebPageRecord](s.db); err != nil {
 		return fmt.Errorf("create web_pages table: %w", err)
 	}
-
-	// Web chunks table with embedding support
-	_, err = s.db.Exec(`
-		CREATE TABLE IF NOT EXISTS web_chunks (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			page_id INTEGER NOT NULL,
-			url TEXT NOT NULL,
-			title TEXT NOT NULL DEFAULT '',
-			chunk_idx INTEGER NOT NULL DEFAULT 0,
-			text TEXT NOT NULL DEFAULT '',
-			embedding BLOB,
-			created_at TEXT NOT NULL DEFAULT (datetime('now')),
-			FOREIGN KEY (page_id) REFERENCES web_pages(id) ON DELETE CASCADE,
-			UNIQUE(url, chunk_idx)
-		)
-	`)
-	if err != nil {
+	if err := sqlh.Create[WebChunkRecord](s.db); err != nil {
 		return fmt.Errorf("create web_chunks table: %w", err)
 	}
 
-	// Create index on URL
+	// sqlh generates only CREATE TABLE statements; create the index manually.
 	_, err = s.db.Exec("CREATE INDEX IF NOT EXISTS idx_web_chunks_url ON web_chunks(url)")
 	if err != nil {
 		return fmt.Errorf("create index: %w", err)
@@ -165,16 +148,11 @@ func (s *Store) PageExists(url string) (*WebPageRecord, error) {
 		return nil, nil
 	}
 
-	row := s.db.QueryRow("SELECT id, url, title, full_text, text_hash, fetched_at FROM web_pages WHERE url = ?", url)
-	var record WebPageRecord
-	err := row.Scan(&record.ID, &record.URL, &record.Title, &record.FullText, &record.TextHash, &record.FetchedAt)
-	if err == sql.ErrNoRows {
+	record, err := sqlh.Get[WebPageRecord](s.db, sqlh.Eq("url", url))
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	return &record, nil
+	return record, err
 }
 
 // SavePage saves a fetched page to the database.
@@ -186,23 +164,23 @@ func (s *Store) SavePage(fetched *FetchedPage) (int64, error) {
 	// Create hash for dedup
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(fetched.Text)))
 
-	_, err := s.db.Exec(`
-		INSERT INTO web_pages (url, title, full_text, text_hash, fetched_at)
-		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(url) DO UPDATE SET
-			title = excluded.title,
-			full_text = excluded.full_text,
-			text_hash = excluded.text_hash,
-			fetched_at = excluded.fetched_at
-	`, fetched.URL, fetched.Title, fetched.Text, hash, fetched.FetchedAt)
-	if err != nil {
+	record := WebPageRecord{
+		URL:       fetched.URL,
+		Title:     fetched.Title,
+		FullText:  fetched.Text,
+		TextHash:  hash,
+		FetchedAt: fetched.FetchedAt,
+	}
+	if err := sqlh.Set(s.db, record, sqlh.Eq("url", fetched.URL)); err != nil {
 		return 0, fmt.Errorf("save page: %w", err)
 	}
 
-	// Get the page ID
-	var pageID int64
-	err = s.db.QueryRow("SELECT id FROM web_pages WHERE url = ?", fetched.URL).Scan(&pageID)
-	return pageID, err
+	// Get the page ID (inserted or updated row)
+	existing, err := sqlh.Get[WebPageRecord](s.db, sqlh.Eq("url", fetched.URL))
+	if err != nil {
+		return 0, err
+	}
+	return existing.ID, nil
 }
 
 // SaveChunk saves a text chunk with its embedding to the database.
@@ -211,23 +189,25 @@ func (s *Store) SaveChunk(pageID int64, url, title string, chunkIdx int, text st
 		return nil
 	}
 
-	embeddingBytes := float32SliceToBytes(embedding)
-
-	_, err := s.db.Exec(`
-		INSERT INTO web_chunks (page_id, url, title, chunk_idx, text, embedding, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-		ON CONFLICT(url, chunk_idx) DO UPDATE SET
-			text = excluded.text,
-			embedding = excluded.embedding,
-			title = excluded.title
-	`, pageID, url, title, chunkIdx, text, embeddingBytes)
-	if err != nil {
+	record := WebChunkRecord{
+		PageID:    pageID,
+		URL:       url,
+		Title:     title,
+		ChunkIdx:  chunkIdx,
+		Text:      text,
+		Embedding: float32SliceToBytes(embedding),
+		CreatedAt: time.Now().UTC().Format("2006-01-02 15:04:05"),
+	}
+	if err := sqlh.Set(s.db, record, sqlh.Eq("url", url), sqlh.Eq("chunk_idx", chunkIdx)); err != nil {
 		return fmt.Errorf("save chunk: %w", err)
 	}
 	return nil
 }
 
 // SearchSemantic performs a cosine similarity search using vector distances.
+// This function is intentionally kept as raw SQL because the full-table vector
+// scan and in-memory cosine sort are not a good fit for sqlh's struct-driven
+// query generation.
 func (s *Store) SearchSemantic(embedding []float32, limit int) ([]SearchResult, error) {
 	if !s.enabled {
 		return nil, fmt.Errorf("database is not available")
@@ -239,7 +219,6 @@ func (s *Store) SearchSemantic(embedding []float32, limit int) ([]SearchResult, 
 	// Use SQL to find nearest neighbors
 	// Since libsql vector extension may not be available, we fetch all embeddings
 	// and compute cosine similarity in Go
-	// We fetch all embeddings and compute cosine similarity in Go
 	rows, err := s.db.Query(`
 		SELECT url, title, text, embedding
 		FROM web_chunks
@@ -251,10 +230,10 @@ func (s *Store) SearchSemantic(embedding []float32, limit int) ([]SearchResult, 
 	defer rows.Close()
 
 	type scored struct {
-		url     string
-		title   string
-		text    string
-		score   float64
+		url   string
+		title string
+		text  string
+		score float64
 	}
 
 	var scoredResults []scored

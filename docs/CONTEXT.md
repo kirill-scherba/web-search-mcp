@@ -56,3 +56,4 @@ web-search-mcp is an MCP (Model Context Protocol) server that provides web searc
 - Ollama with embedding model (embeddinggemma:latest)
 - Chromium/Chrome (for chromedp)
 - libSQL (go-libsql driver)
+- github.com/kirill-scherba/sqlh (Go SQL helper for struct-driven CRUD)
