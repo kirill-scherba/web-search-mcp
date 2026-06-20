@@ -20,24 +20,24 @@ import (
 type WebPageRecord struct {
 	_         string `db_table_name:"web_pages"`
 	ID        int64  `db:"id" db_key:"primary key autoincrement"`
-	URL       string `db:"url" db_key:"unique"`
-	Title     string `db:"title"`
-	FullText  string `db:"full_text"`
-	TextHash  string `db:"text_hash"`
-	FetchedAt int64  `db:"fetched_at"`
+	URL       string `db:"url" db_key:"unique not null"`
+	Title     string `db:"title" db_key:"not null"`
+	FullText  string `db:"full_text" db_key:"not null"`
+	TextHash  string `db:"text_hash" db_key:"not null"`
+	FetchedAt int64  `db:"fetched_at" db_key:"not null"`
 }
 
 // WebChunkRecord represents a chunk in the web_chunks table with embedding.
 type WebChunkRecord struct {
 	_         string `db_table_name:"web_chunks"`
 	ID        int64  `db:"id" db_key:"primary key autoincrement"`
-	PageID    int64  `db:"page_id"`
-	URL       string `db:"url"`
-	Title     string `db:"title"`
-	ChunkIdx  int    `db:"chunk_idx"`
-	Text      string `db:"text"`
+	PageID    int64  `db:"page_id" db_key:"not null"`
+	URL       string `db:"url" db_key:"not null"`
+	Title     string `db:"title" db_key:"not null"`
+	ChunkIdx  int    `db:"chunk_idx" db_key:"not null"`
+	Text      string `db:"text" db_key:"not null"`
 	Embedding []byte `db:"embedding"`
-	CreatedAt string `db:"created_at"`
+	CreatedAt string `db:"created_at" db_key:"not null"`
 
 	// Composite unique constraint on (url, chunk_idx).
 	_ string `db:"-" db_key:"CONSTRAINT url_chunk UNIQUE (url, chunk_idx)"`
