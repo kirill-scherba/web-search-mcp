@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// Command line flags
-	dbPath := flag.String("db", "", "Path to the SQLite database (default: ~/.config/web-search-mcp/web_search.db)")
+	dbPath := flag.String("db", "", "Path to the SQLite database (default: ~/.config/teonet/web-search-mcp/web_search.db)")
 	ollamaURL := flag.String("ollama-url", "http://localhost:11434", "Ollama API URL")
 	embeddingModel := flag.String("embedding-model", defaultEmbeddingModel, "Embedding model name")
 	chromiumPath := flag.String("chromium-path", "", "Path to Chromium executable (default: auto-detect)")
@@ -59,7 +59,7 @@ func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
 		"web-search-mcp",
-		"0.2.1",
+		"0.2.2",
 		server.WithInstructions(`Web Search MCP - search the web with semantic analysis.
 
 Available tools:

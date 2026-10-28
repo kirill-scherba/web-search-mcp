@@ -60,7 +60,8 @@ func NewStore(dbPath string) *Store {
 			log.Printf("⚠️  Could not get user config directory: %v", err)
 			return &Store{enabled: false}
 		}
-		dbPath = filepath.Join(configDir, "web-search-mcp", "web_search.db")
+		// One folder per vendor, as the rest of the stack does: ~/.config/teonet/web-search-mcp.
+		dbPath = filepath.Join(configDir, "teonet", "web-search-mcp", "web_search.db")
 	}
 
 	// Ensure directory exists
