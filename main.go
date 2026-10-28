@@ -59,7 +59,7 @@ func main() {
 	// Create MCP server
 	s := server.NewMCPServer(
 		"web-search-mcp",
-		"0.1.0",
+		"0.2.0",
 		server.WithInstructions(`Web Search MCP - search the web with semantic analysis.
 
 Available tools:

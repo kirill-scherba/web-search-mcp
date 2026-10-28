@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/kirill-scherba/sqlh"
-	_ "github.com/tursodatabase/go-libsql"
+	_ "modernc.org/sqlite"
 )
 
 // WebPageRecord represents a record in the web_pages table.
@@ -70,9 +70,9 @@ func NewStore(dbPath string) *Store {
 		return &Store{enabled: false}
 	}
 
-	// Connect to libsql database
+	// Pure-Go SQLite: no cgo, so the same source builds for Linux and Windows as a static binary.
 	dataSourceName := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
-	db, err := sql.Open("libsql", dataSourceName)
+	db, err := sql.Open("sqlite", dataSourceName)
 	if err != nil {
 		log.Printf("⚠️  Could not open database: %v", err)
 		return &Store{enabled: false}
@@ -116,13 +116,8 @@ func (s *Store) Close() error {
 
 // createTables creates the database tables if they don't exist.
 func (s *Store) createTables() error {
-	// Enable vector extension in libsql. This is not a table operation, so it
-	// stays as raw SQL.
-	_, err := s.db.Exec("CREATE EXTENSION IF NOT EXISTS vector")
-	if err != nil {
-		// Vector extension might not be available in all libsql builds
-		log.Printf("⚠️  Vector extension not available (cosine similarity will use custom function): %v", err)
-	}
+	// No vector extension: cosine similarity is computed in Go (see cosineSimilarity), which keeps the
+	// database a plain SQLite file and the binary free of cgo.
 
 	// Create tables from struct definitions.
 	if err := sqlh.Create[WebPageRecord](s.db); err != nil {
@@ -133,8 +128,7 @@ func (s *Store) createTables() error {
 	}
 
 	// sqlh generates only CREATE TABLE statements; create the index manually.
-	_, err = s.db.Exec("CREATE INDEX IF NOT EXISTS idx_web_chunks_url ON web_chunks(url)")
-	if err != nil {
+	if _, err := s.db.Exec("CREATE INDEX IF NOT EXISTS idx_web_chunks_url ON web_chunks(url)"); err != nil {
 		return fmt.Errorf("create index: %w", err)
 	}
 
