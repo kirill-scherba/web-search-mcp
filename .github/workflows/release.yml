@@ -1,0 +1,70 @@
+# Release: a tag builds the server for both platforms and attaches the archives to a GitHub release.
+#
+# The builds are native on purpose. This server links libsql, which is cgo: a static cross-build does
+# not exist, so Linux is built on Linux and Windows on Windows with MinGW in the PATH.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-amd64
+          - os: windows-latest
+            platform: windows-amd64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: MinGW (cgo on Windows)
+        if: matrix.platform == 'windows-amd64'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: mingw-w64-x86_64-gcc
+          path-type: inherit
+
+      - name: Build and pack
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          zip="web-search-mcp_${tag}_${{ matrix.platform }}.zip"
+          if [ "${{ matrix.platform }}" = "windows-amd64" ]; then
+            export CC=x86_64-w64-mingw32-gcc
+            go build -trimpath -ldflags "-s -w" -o web-search-mcp.exe .
+          else
+            go build -trimpath -ldflags "-s -w" -o web-search-mcp .
+          fi
+          ls -la web-search-mcp* || true
+          if [ "${{ matrix.platform }}" = "windows-amd64" ]; then
+            powershell -NoProfile -Command "Compress-Archive -Path web-search-mcp.exe -DestinationPath '$zip' -Force"
+          else
+            zip -q "$zip" web-search-mcp
+          fi
+          sha256sum "$zip" | tee "$zip.sha256" || true
+          echo "ZIP=$zip" >> "$GITHUB_ENV"
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ZIP }}
+            ${{ env.ZIP }}.sha256
+          fail_on_unmatched_files: false
