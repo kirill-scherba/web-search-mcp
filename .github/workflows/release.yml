@@ -47,7 +47,15 @@ jobs:
           tag="${GITHUB_REF_NAME#v}"
           zip="web-search-mcp_${tag}_${{ matrix.platform }}.zip"
           if [ "${{ matrix.platform }}" = "windows-amd64" ]; then
-            export CC=x86_64-w64-mingw32-gcc
+            # MSYS2 ships the host-native MinGW compiler as plain gcc; the triple-prefixed name is not
+            # guaranteed to exist, and pointing CC at a missing binary fails the build (28.10.2026).
+            if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+              export CC=x86_64-w64-mingw32-gcc
+            else
+              export CC=gcc
+            fi
+            command -v gcc >/dev/null 2>&1 || echo "no gcc in PATH"
+            gcc --version | head -1 || true
             go build -trimpath -ldflags "-s -w" -o web-search-mcp.exe .
           else
             go build -trimpath -ldflags "-s -w" -o web-search-mcp .
