@@ -73,9 +73,13 @@ go build -o web-search-mcp .
 ./web-search-mcp
 ```
 
-### 3. Connect to Cline
+### 3. Connect to an AI agent
 
-Add to your Cline MCP settings file:
+Any MCP-capable agent can use this server: it speaks the standard stdio transport, so the only thing
+a client needs is a command to start and the name it should call it by. The settings file differs per
+client, the entry does not.
+
+**The entry itself** (same everywhere, only the path changes):
 
 ```json
 {
@@ -84,19 +88,66 @@ Add to your Cline MCP settings file:
       "command": "/path/to/web-search-mcp",
       "args": [],
       "env": {},
-      "disabled": false,
-      "autoApprove": [
-        "web_search",
-        "web_search_analyze",
-        "web_fetch",
-        "web_semantic_search"
-      ]
+      "disabled": false
     }
   }
 }
 ```
 
-Then click **"Restart MCP Servers"** in the Cline panel or reload the page.
+<details open>
+<summary><b>Cline</b></summary>
+
+Paste the entry into the Cline MCP settings file, then press **"Restart MCP Servers"** in the Cline
+panel (or reload the page). Optionally add the tool names to `autoApprove` so searches run without a
+confirmation prompt:
+
+```json
+"autoApprove": ["web_search", "web_search_analyze", "web_fetch", "web_semantic_search"]
+```
+
+</details>
+
+<details>
+<summary><b>Codex</b></summary>
+
+Codex reads MCP servers from its own configuration and starts them the same way:
+
+```toml
+# ~/.codex/config.toml
+[mcp_servers.web-search-mcp]
+command = "/path/to/web-search-mcp"
+args = []
+```
+
+Restart the session; the tools appear as `web_search`, `web_search_analyze`, `web_fetch` and
+`web_semantic_search`.
+
+</details>
+
+<details>
+<summary><b>Claude</b></summary>
+
+Claude Desktop takes the same JSON entry in `claude_desktop_config.json` (Settings → Developer → Edit
+Config), after which the application is restarted:
+
+```json
+{
+  "mcpServers": {
+    "web-search-mcp": {
+      "command": "/path/to/web-search-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+On Linux and macOS the file lives at `~/Library/Application Support/Claude/` (macOS) or
+`~/.config/Claude/` (Linux), on Windows under `%APPDATA%\Claude\`.
+
+</details>
+
+Windows users: the command is the path to `web-search-mcp.exe`, and forward slashes or doubled
+backslashes both work in JSON.
 
 ---
 
