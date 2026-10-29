@@ -47,6 +47,15 @@ With **web-search-mcp** the analysis happens locally:
 
 ---
 
+## Install in AnyText
+
+One binary for Linux and Windows; Go only, nothing to install next to it.
+
+1. AnyText → Настройки → MCP → «Доступные серверы» → **Web search** → «Установить».
+2. Optional setting: `OLLAMA_BASE_URL` (default `http://localhost:11434`) — used for semantic ranking.
+   Without a local Ollama the plain `web_search` and `web_fetch` still work.
+3. Tools: `web_search`, `web_fetch`, `web_search_analyze`, `web_semantic_search`.
+
 ## 🚀 Quick Start
 
 ### 1. Install dependencies
