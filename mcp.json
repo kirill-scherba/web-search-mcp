@@ -1,0 +1,21 @@
+{
+  "name": "web-search-mcp",
+  "title": {
+    "ru": "Веб-поиск",
+    "en": "Web search"
+  },
+  "description": {
+    "ru": "Поиск в DuckDuckGo, чтение страниц, семантический отбор по вопросу и поиск по ранее прочитанному.",
+    "en": "DuckDuckGo search, page reading, semantic ranking against a question, and search over what was already read."
+  },
+  "category": "web",
+  "install": "binary",
+  "command": [
+    "web-search-mcp"
+  ],
+  "entries": {
+    "linux-amd64": "web-search-mcp",
+    "windows-amd64": "web-search-mcp.exe"
+  },
+  "docs": "https://github.com/kirill-scherba/web-search-mcp#install-in-anytext"
+}
